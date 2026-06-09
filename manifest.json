@@ -1,11 +1,11 @@
 {
-  "name": "Tecnologia Industrial 2n BATX Exercicis Plus",
+  "name": "Tecnologia Industrial 2n BATX Exercicis Plus v1.1",
   "short_name": "TI2 Exercicis",
   "description": "PWA educativa per treballar exercicis de Tecnologia Industrial de 2n de batxillerat amb banc derivat del solucionari McGraw.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f6faf8",
-  "theme_color": "#1f6f5b",
+  "background_color": "#f6f9ff",
+  "theme_color": "#2563eb",
   "icons": [
     {
       "src": "assets/icons/icon-192.png",

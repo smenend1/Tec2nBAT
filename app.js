@@ -30,8 +30,88 @@ function filtered(){let f=state.filter; return EXERCISES.filter(e=>(!f.q||JSON.s
 function filters(){let us=uniq(EXERCISES.map(e=>e.unitat)), ts=uniq(EXERCISES.map(e=>e.tema)), ty=uniq(EXERCISES.map(e=>e.tipus)), ns=uniq(EXERCISES.map(e=>e.nivell)); return `<div class="card noprint"><h2>Filtres</h2><div class="grid"><label>Cerca<input value="${esc(state.filter.q)}" placeholder="motor, gas, lògica, metrologia..." oninput="state.filter.q=this.value;render()"></label><label>Unitat<select onchange="state.filter.unitat=this.value;render()"><option value="">Totes</option>${us.map(x=>`<option ${state.filter.unitat==x?'selected':''}>${esc(x)}</option>`).join('')}</select></label><label>Tema<select onchange="state.filter.tema=this.value;render()"><option value="">Tots</option>${ts.map(x=>`<option ${state.filter.tema==x?'selected':''}>${esc(x)}</option>`).join('')}</select></label><label>Tipus<select onchange="state.filter.tipus=this.value;render()"><option value="">Tots</option>${ty.map(x=>`<option ${state.filter.tipus==x?'selected':''}>${esc(x)}</option>`).join('')}</select></label><label>Nivell<select onchange="state.filter.nivell=this.value;render()"><option value="">Tots</option>${ns.map(x=>`<option ${state.filter.nivell==x?'selected':''}>${esc(x)}</option>`).join('')}</select></label></div></div>`}
 function card(e){let st=state.teacher[e.id]?.status||'pendent'; return `<article class="card"><span class="pill">${esc(e.unitat)}</span><span class="pill">${esc(e.tema)}</span><h3>${esc(e.titol)}</h3><p class="muted">${esc(e.enunciat).slice(0,260)}${e.enunciat.length>260?'...':''}</p><p><b>Pàgina:</b> ${e.page} · <b>Tipus:</b> ${esc(e.tipus)} · <b>Nivell:</b> ${esc(e.nivell)} · <b>Estat:</b> ${esc(st)}</p><button class="btn primary" onclick="openEx('${e.id}')">Obrir exercici</button><button class="btn" onclick="printEx('${e.id}')">Fitxa imprimible</button></article>`}
 function openEx(id){state.current=EXERCISES.find(e=>e.id==id); state.view='exercicis'; render(); window.scrollTo(0,0)}
-function solution(e){return `<div class="solution"><h3>Resolució guiada</h3><h4>1. Què demana?</h4><p>Identifica la magnitud o decisió tècnica que cal obtenir en aquest exercici de <b>${esc(e.tema)}</b>.</p><h4>2. Dades i unitats</h4><p>Extreu les dades numèriques de l’enunciat i converteix-les al SI quan calgui. Si hi ha figura, consulta la pàgina original.</p><h4>3. Fórmules o principis</h4>${e.formules.map(f=>`<code class="formula">${esc(f)}</code>`).join('')}<h4>4. Desenvolupament</h4><p>Substitueix les dades de manera ordenada. Escriu unitats a cada pas i comprova si el resultat té sentit físic o tecnològic.</p><h4>5. Solució model depurada</h4><div class="clean-solution">${paragraphsFromClean(e.solucioBase)}</div><p class="notice"><b>Nota docent:</b> aquesta solució s’ha netejat automàticament a partir del text extret. Quan hi hagi fórmules complexes, gràfics o esquemes, revisa també la pàgina original integrada.</p><details class="noprint"><summary><b>Veure text extret original</b></summary><div class="rawbox">${esc(e.solucioBase)}</div></details><h4>6. Errors habituals</h4><ul><li>No convertir rpm a rad/s, bar a Pa, mm a m o hores a segons.</li><li>Confondre potència i energia.</li><li>Donar el número final sense unitat ni interpretació.</li><li>En test, no justificar per què les altres opcions són incorrectes.</li></ul></div>`}
-function exerciseView(){if(state.current){let e=state.current;return `<div class="card"><button class="btn noprint" onclick="state.current=null;render()">← Tornar al banc</button><h2>${esc(e.titol)}</h2><p><span class="pill">${esc(e.bloc)}</span><span class="pill">${esc(e.unitat)}</span><span class="pill">${esc(e.tema)}</span><span class="pill">${esc(e.tipus)}</span></p><h3>Enunciat de treball</h3><p>${esc(e.enunciat)}</p><div class="row noprint"><button class="btn primary" onclick="markDone('${e.id}')">Marcar com fet</button><button class="btn" onclick="window.print()">Imprimir fitxa</button><button class="btn" onclick="showPage(${e.page})">Veure pàgina original</button></div><details open><summary><b>Solució pas a pas</b></summary>${solution(e)}</details><details><summary><b>Pàgina original del solucionari</b></summary><p class="muted">S’utilitza per revisar figures, gràfics o esquemes que no quedin ben reflectits al text extret.</p><img class="pageimg" src="assets/pages/page-${String(e.page).padStart(3,'0')}.jpg"></details></div>`} let list=filtered(); return filters()+`<h2>${list.length} fitxes trobades</h2><div class="grid">${list.slice(0,300).map(card).join('')}</div><p class="muted">Si el filtre retorna moltes fitxes, usa unitat o paraula clau. El banc prové del solucionari de 2n i pot contenir activitats, qüestions finals, exercicis i avaluacions.</p>`}
+
+function fixTypography(s){
+  return String(s||'')
+    .replace(/fi\s+nal/g,'final').replace(/fi\s+ns/g,'fins').replace(/fi\s+x/g,'fix')
+    .replace(/gràfi\s+ca/g,'gràfica').replace(/consumi-\s*da/g,'consumida')
+    .replace(/Densi-\s*tat/g,'Densitat').replace(/mo-\s*triu/g,'motriu')
+    .replace(/con-\s*dicions/g,'condicions').replace(/ne-\s*cessària/g,'necessària')
+    .replace(/\s+/g,' ').trim();
+}
+function latexish(s){
+  return String(s||'')
+    .replace(/\s*·\s*/g,' · ')
+    .replace(/\s*=\s*/g,' = ')
+    .replace(/\s*≤\s*/g,' ≤ ')
+    .replace(/\s*≥\s*/g,' ≥ ')
+    .replace(/\s{2,}/g,' ');
+}
+function extractResults(txt){
+  let s=cleanExtractedText(txt);
+  const found=[];
+  const patterns=[
+    /La resposta correcta és la\s+([a-d]\))/gi,
+    /d[’']on\s+([^\.\n]{1,90})/gi,
+    /Finalment[:,]?\s*([^\.\n]{1,100})/gi,
+    /Resposta:\s*([^\.\n]{1,80})/gi,
+    /([A-Za-zÀ-ÿΓηω][A-Za-zÀ-ÿ0-9Γηω_]*\s*=\s*[-+]?[0-9]+[,.]?[0-9]*\s*(?:m\/s|rad\/s|N·m|N|J|kJ|MJ|W|kW|kWh|bar|Pa|m|mm|kg|%|unitats|s|h))/g
+  ];
+  patterns.forEach(re=>{let m; while((m=re.exec(s)) && found.length<10){let v=fixTypography(m[1]||m[0]); if(v && !found.includes(v)) found.push(v)}});
+  return found;
+}
+function detectParts(txt){
+  let s=fixTypography(cleanExtractedText(txt));
+  s=s.replace(/\b([a-e])\)\s*/g,'§$1) ');
+  let chunks=s.split('§').filter(Boolean);
+  if(chunks.length>1) return chunks.slice(0,8).map(c=>latexish(c));
+  return [];
+}
+function themeGuide(e){
+  const t=(e.tema+' '+e.unitat+' '+e.bloc).toLowerCase();
+  if(t.includes('màquine')||t.includes('mecan')||t.includes('principis')) return ['Converteix velocitats de min⁻¹ a rad/s quan hi aparegui un motor o eix.','Relaciona energia, treball, potència i parell segons el que demani l’apartat.','Si hi ha rendiment, diferencia energia o potència útil i consumida.','Acaba cada apartat amb unitat i frase interpretativa.'];
+  if(t.includes('tèrmi')||t.includes('gas')||t.includes('combust')) return ['Identifica si és calor sensible, canvi d’estat, gas ideal o cicle tèrmic.','Converteix temperatures a kelvin quan s’apliqui una llei dels gasos.','Aplica rendiment si l’energia útil no coincideix amb l’energia consumida.','Indica si el resultat és calor, treball, pressió, volum o rendiment.'];
+  if(t.includes('corrent')||t.includes('electro')||t.includes('elèct')) return ['Dibuixa o interpreta el circuit abans de calcular.','Treballa amb valors eficaços en corrent altern si no s’indica el contrari.','Calcula impedàncies, intensitats i potències amb unitats coherents.','Diferencia potència activa, reactiva i aparent.'];
+  if(t.includes('digital')||t.includes('automàtic')) return ['Defineix variables d’entrada i sortida.','Omple la taula de veritat amb totes les combinacions possibles.','Obtén la funció lògica i simplifica si és possible.','Comprova que l’esquema de portes coincideix amb la funció.'];
+  if(t.includes('pneum')||t.includes('hidràul')) return ['Passa pressions a pascals i diàmetres a metres.','Calcula àrees amb A = π·d²/4.','Aplica F = p·A o Q = A·v segons el que demani l’apartat.','Comprova si el resultat és força, cabal, velocitat o temps.'];
+  if(t.includes('metrolog')||t.includes('fabric')||t.includes('organització')) return ['Identifica dades de tolerància, cost, producció o qualitat.','Ordena el càlcul per passos i evita barrejar percentatges amb valors absoluts.','Presenta resultat amb criteri tecnològic, no només numèric.','Indica què significa el resultat dins del procés industrial.'];
+  return ['Llegeix l’enunciat complet i separa dades, incògnites i condicions.','Tria la fórmula o principi tecnològic que correspon a la unitat.','Substitueix amb unitats i calcula per apartats.','Interpreta el resultat i revisa si és coherent.'];
+}
+function readableStatement(e){
+  let raw=fixTypography(e.enunciat||'');
+  raw=raw.replace(/\/MT\d+/g,' ');
+  raw=raw.replace(/\s+/g,' ').trim();
+  raw=raw.replace(/\b([a-e])\)\s*/g,'\n$1) ');
+  // Talla quan comencen fragments clarament de solucionari; manté l’enunciat i els apartats si hi són abans.
+  const cutMarkers=[' La resposta correcta',' Primer calculem',' Llavors',' Finalment',' d’on ',' Ec =',' EP =',' W =',' P =',' Q ='];
+  let cut=raw.length;
+  for(const m of cutMarkers){let i=raw.indexOf(m); if(i>80 && i<cut) cut=i;}
+  let text=raw.slice(0,cut).trim();
+  if(text.length<80) text=raw.slice(0,420).trim();
+  return text.split(/\n+/).filter(Boolean).map(x=>`<p>${esc(latexish(x))}</p>`).join('');
+}
+function structuredSolution(e){
+  const results=extractResults(e.solucioBase);
+  const parts=detectParts(e.solucioBase);
+  const guide=themeGuide(e);
+  const formulas=(e.formules||[]).filter(Boolean).slice(0,8);
+  let html=`<div class="solution improved"><h3>Resolució guiada llegible</h3>`;
+  html+=`<section class="step"><h4>1. Lectura de l’exercici</h4><p>Treballa aquesta fitxa de <b>${esc(e.unitat)}</b>, dins el tema <b>${esc(e.tema)}</b>. L’objectiu és resoldre-la per apartats i no copiar una cadena de càlculs.</p></section>`;
+  html+=`<section class="step"><h4>2. Apartats detectats</h4>`;
+  if(parts.length){html+=`<ul class="partlist">${parts.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>`} else {html+=`<p>No s’han detectat apartats nets. Usa l’enunciat i la pàgina original per separar les preguntes.</p>`}
+  html+=`</section>`;
+  html+=`<section class="step"><h4>3. Fórmules o idees clau</h4>${formulas.map(f=>`<code class="formula">${esc(latexish(f))}</code>`).join('')||'<p>Tria la fórmula segons la magnitud demanada.</p>'}</section>`;
+  html+=`<section class="step"><h4>4. Procediment recomanat</h4><ol>${guide.map(g=>`<li>${esc(g)}</li>`).join('')}</ol></section>`;
+  html+=`<section class="step"><h4>5. Resultats o respostes detectades</h4>`;
+  if(results.length){html+=`<ul class="results">${results.map(r=>`<li>${esc(latexish(r))}</li>`).join('')}</ul>`} else {html+=`<p>No hi ha resultat automàtic fiable detectat. En aquesta fitxa cal revisar la pàgina original o resoldre amb el procediment indicat.</p>`}
+  html+=`</section>`;
+  html+=`<section class="step"><h4>6. Text extret del solucionari</h4><p class="notice"><b>Important:</b> el text OCR del PDF no es mostra com a solució principal perquè pot ajuntar números, fórmules i apartats. Queda només com a consulta docent.</p><details class="noprint"><summary>Veure extracte netejat</summary><div class="rawbox">${esc(cleanExtractedText(e.solucioBase))}</div></details></section>`;
+  html+=`<section class="step"><h4>7. Errors habituals</h4><ul><li>No separar apartats abans de calcular.</li><li>Copiar fórmules sense unitats.</li><li>Confondre potència, energia, treball, parell o rendiment.</li><li>No revisar la figura original quan hi ha gràfics o esquemes.</li></ul></section></div>`;
+  return html;
+}
+
+function solution(e){return structuredSolution(e)}
+function exerciseView(){if(state.current){let e=state.current;return `<div class="card"><button class="btn noprint" onclick="state.current=null;render()">← Tornar al banc</button><h2>${esc(e.titol)}</h2><p><span class="pill">${esc(e.bloc)}</span><span class="pill">${esc(e.unitat)}</span><span class="pill">${esc(e.tema)}</span><span class="pill">${esc(e.tipus)}</span></p><h3>Enunciat de treball</h3><div class="statement">${readableStatement(e)}</div><div class="row noprint"><button class="btn primary" onclick="markDone('${e.id}')">Marcar com fet</button><button class="btn" onclick="window.print()">Imprimir fitxa</button><button class="btn" onclick="showPage(${e.page})">Veure pàgina original</button></div><details open><summary><b>Solució pas a pas</b></summary>${solution(e)}</details><details><summary><b>Pàgina original del solucionari</b></summary><p class="muted">S’utilitza per revisar figures, gràfics o esquemes que no quedin ben reflectits al text extret.</p><img class="pageimg" src="assets/pages/page-${String(e.page).padStart(3,'0')}.jpg"></details></div>`} let list=filtered(); return filters()+`<h2>${list.length} fitxes trobades</h2><div class="grid">${list.slice(0,300).map(card).join('')}</div><p class="muted">Si el filtre retorna moltes fitxes, usa unitat o paraula clau. El banc prové del solucionari de 2n i pot contenir activitats, qüestions finals, exercicis i avaluacions.</p>`}
 function showPage(p){let w=window.open('assets/pages/page-'+String(p).padStart(3,'0')+'.jpg','_blank');}
 function markDone(id){state.progress[id]={done:true,date:new Date().toISOString()}; localStorage.setItem('ti2-progress',JSON.stringify(state.progress)); alert('Exercici marcat com fet.');}
 function printEx(id){openEx(id); setTimeout(()=>window.print(),250)}
@@ -42,7 +122,7 @@ function setCalcFields(){let t=$('#calcType')?.value;if(!t)return;let html='';le
 function runCalc(){let t=$('#calcType').value,v=id=>parseFloat($('#c_'+id).value)||0,out=''; if(t=='torque'){let w=2*Math.PI*v('n')/60, M=v('P')/w;out=`<h3>Parell</h3><code class="formula">ω = 2πn/60 = ${w.toFixed(3)} rad/s</code><code class="formula">Γ = P/ω = ${M.toFixed(3)} N·m</code>`} if(t=='heat'){let Q=v('m')*v('ce')*v('dt');out=`<h3>Calor</h3><code class="formula">Q = m·ce·ΔT = ${Q.toFixed(2)} J = ${(Q/1000).toFixed(2)} kJ</code>`} if(t=='gas'){let p=v('n')*8.314*v('T')/v('V');out=`<h3>Gas ideal</h3><code class="formula">p = nRT/V = ${p.toFixed(0)} Pa = ${(p/100000).toFixed(3)} bar</code>`} if(t=='hyd'){let A=Math.PI*Math.pow(v('d')/1000,2)/4,F=v('p')*1e5*A;out=`<h3>Cilindre hidràulic</h3><code class="formula">A = πd²/4 = ${A.toExponential(3)} m²</code><code class="formula">F = p·A = ${F.toFixed(1)} N</code>`} if(t=='rl'){let XL=2*Math.PI*v('f')*v('L');out=`<h3>Reactància inductiva</h3><code class="formula">XL = 2πfL = ${XL.toFixed(2)} Ω</code>`} if(t=='tri'){let P=Math.sqrt(3)*v('U')*v('I')*v('c');out=`<h3>Potència trifàsica</h3><code class="formula">P = √3·U·I·cosφ = ${P.toFixed(1)} W</code>`} $('#calcOut').innerHTML=out}
 function practica(){let e=EXERCISES[Math.floor(Math.random()*EXERCISES.length)];return `<div class="card"><h2>Pràctica ràpida</h2><p>Exercici proposat aleatoriament:</p>${card(e)}<button class="btn primary" onclick="go('pràctica')">Generar-ne un altre</button></div>`}
 function docent(){let n=filtered().length;return filters()+`<div class="card"><h2>Mode docent</h2><p>Prepara classe amb el banc de 2n. Filtra per unitat o tema i imprimeix un dossier d’alumne o un solucionari orientatiu.</p><div class="row"><button class="btn primary" onclick="printDossier(false)">Imprimir dossier d’alumne (${n})</button><button class="btn" onclick="printDossier(true)">Imprimir solucionari docent (${n})</button></div></div>`}
-function printDossier(sol){let list=filtered().slice(0,30);let html=list.map(e=>`<div class="card"><h2>${esc(e.titol)}</h2><p>${esc(e.enunciat)}</p>${sol?solution(e):'<p><b>Espai de resposta:</b></p><br><br><br>'}</div>`).join(''); let old=$('#app').innerHTML; $('#app').innerHTML=html; window.print(); $('#app').innerHTML=old;}
+function printDossier(sol){let list=filtered().slice(0,30);let html=list.map(e=>`<div class="card"><h2>${esc(e.titol)}</h2><div class="statement">${readableStatement(e)}</div>${sol?solution(e):'<p><b>Espai de resposta:</b></p><br><br><br>'}</div>`).join(''); let old=$('#app').innerHTML; $('#app').innerHTML=html; window.print(); $('#app').innerHTML=old;}
 function progres(){let done=Object.keys(state.progress).length;return `<div class="card"><h2>Progrés local</h2><p>Exercicis marcats com fets en aquest navegador: <b>${done}</b></p><button class="btn" onclick="localStorage.removeItem('ti2-progress');state.progress={};render()">Esborrar progrés</button><button class="btn" onclick="downloadJSON()">Exportar progrés</button></div>`}
 function downloadJSON(){let blob=new Blob([JSON.stringify(state.progress,null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='progres_ti2batx.json';a.click()}
 function auditoria(){let statuses=['pendent','verificat','revisar resultat','depèn de figura','millorar enunciat']; let list=filtered().slice(0,80);return filters()+`<div class="card"><h2>Auditoria docent</h2><p>Marca l’estat de cada fitxa. Les marques es guarden només al navegador.</p></div><div class="grid">${list.map(e=>`<div class="card"><h3>${esc(e.titol)}</h3><p>${esc(e.enunciat).slice(0,180)}...</p><select onchange="state.teacher['${e.id}']={status:this.value};localStorage.setItem('ti2-teacher',JSON.stringify(state.teacher))">${statuses.map(s=>`<option ${state.teacher[e.id]?.status==s?'selected':''}>${s}</option>`).join('')}</select></div>`).join('')}</div>`}
